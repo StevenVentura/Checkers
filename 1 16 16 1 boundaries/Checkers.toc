@@ -1,0 +1,6 @@
+## Interface: 60200
+## Title: Checkers
+## Notes: Yes, it is literally Checkers. 2-player!
+
+Checkers.lua
+Checkers.xml

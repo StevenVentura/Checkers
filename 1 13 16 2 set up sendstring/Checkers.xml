@@ -1,0 +1,17 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"   xsi:schemaLocation="http://www.blizzard.com/wow/ui/">
+	<Script file="Checkers.lua" />
+   <!-- Frame to handle all core events -->
+   <Frame name="Checkers_core">
+      <Scripts> 
+         <OnLoad> 
+             Checkers_initialize();
+	Checkers_OnLoad();
+         </OnLoad>
+         <OnEvent> 
+           
+
+            
+         </OnEvent>
+      </Scripts> 
+   </Frame>
+</Ui>
