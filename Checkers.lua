@@ -682,6 +682,11 @@ CHESS_TEAMS = {TEAM_HOST,TEAM_HOST,TEAM_HOST,TEAM_HOST,
 
 local function createPieces()
 
+for i = 1, 8*2*2 do
+if pieces and pieces[i] and pieces[i].checkerFrame then
+pieces[i].checkerFrame:Hide();
+end
+end--endfor
 if (isPlayingChess) then
 numPieces = 8*2*2; 
 else
@@ -702,10 +707,10 @@ tx = nil;
 };
 
 local kids = {backgroundFrame:GetChildren()};
-if (firstCheckerRun == true) then
+--if (firstCheckerRun == true) then
 pieces[i].checkerFrame = CreateFrame("FRAME", "checkerFrame" .. i,
 								backgroundFrame);
-else--begin firstCheckerRun == false (recycle the frames from last game run.)
+--[[else--begin firstCheckerRun == false (recycle the frames from last game run.)
 --find the handle on the existing frame, and align it with this data.
 for _,checker in ipairs(kids) do
 local name = checker:GetName();
@@ -714,7 +719,7 @@ if (index == i) then
 pieces[i].checkerFrame = checker;
 end--end if index == i
 end--end for iterator
-end--end firstCheckerRun == false
+end--end firstCheckerRun == false]]
 print ("i is " .. i);
 print(pieces[i].team);
 --only allow the player to move his own pieces.
@@ -791,7 +796,7 @@ pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES
 else
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
 end]]
-pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/alliance_checker.tga');
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/hk.tga');
 pieces[i].checkerFrame:Show();
 
 
@@ -815,19 +820,11 @@ tx = nil;
 };
 
 local kids = {backgroundFrame:GetChildren()};
-if (firstCheckerRun == true) then
+
 pieces[i].checkerFrame = CreateFrame("FRAME", "checkerFrame" .. i,
 								backgroundFrame);
-else--begin firstCheckerRun == false (recycle the frames from last game run.)
---find the handle on the existing frame, and align it with this data.
-for _,checker in ipairs(kids) do
-local name = checker:GetName();
-local index = tonumber(string.sub(name,strlen("checkerFrame")+1));
-if (index == i) then
-pieces[i].checkerFrame = checker;
-end--end if index == i
-end--end for iterator
-end--end firstCheckerRun == false
+
+
 
 --only allow the player to move his own pieces.
 if ((isHostingTheCheckersGame==true and pieces[i].team == TEAM_HOST) or 
@@ -904,13 +901,15 @@ end--end isOneOfMyPiecesSoLetMeMoveIt
 pieces[i].checkerFrame:SetPoint("BOTTOMLEFT",(c-1)*widthB/8,(r-1)*heightB/8);
 pieces[i].checkerFrame:SetSize(widthB/8,heightB/8);
 pieces[i].tx = pieces[i].checkerFrame:CreateTexture();
-pieces[i].tx:SetAllPoints();
-pieces[i].tx:SetAlpha(1);
+
 if (pieces[i].team == TEAM_HOST) then
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/alliance_checker.tga');
 else
+print("reetho" .. i)
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/horde_checker.tga');
 end
+pieces[i].tx:SetAllPoints();
+pieces[i].tx:SetAlpha(1);
 pieces[i].checkerFrame:Show();
 
 
@@ -1181,7 +1180,7 @@ pieces[index].checkerFrame:SetPoint("BOTTOMLEFT",
 				convertColumnToX(pieces[index].column),
 				convertRowToY(pieces[index].row));
 pieces[index].checkerFrame:SetSize(widthB/8,heightB/8);
-end--end if index is checker
+end--end if index is checkerd
 end--end for iterator
 
 end--end function makeFramesGreatAgain
