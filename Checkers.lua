@@ -531,19 +531,104 @@ end--end if is checker
 end--end for
 return -1;
 
-end
+end--end function isSpaceOCcupied
 
 --[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
 		landedRow,landedColumn, pieces[i].team,pieces[i].name);
 ]]
 function isValidChessMove(thisPiece,r1,c1,r2,c2,team,name,noVoice)
+print("r2,c2 is " .. r2 .. "," .. c2);
+print("r1,c1 is " .. r1 .. "," .. c1);
+
+--handle the attempted movement of pieces that are just display.
+if (thisPiece ~= -1 and pieces[thisPiece].alive == false) then return false; end
+
+--make sure it's player's turn.
+if (isMyCheckersTurn == false) then
+setStatusText("It is their turn.",8,VOICE_WRONG_TURN,noVoice);
+return false
+end;
+--check board boundaries
+if (r2 <= 0 or r2 >= 9 or c2 <= 0 or c2 >= 9) then
+setStatusText("Out of bounds",8,VOICE_OUT_OF_RANGE,noVoice);
+return false;
+end--end out of board bounds
+
+--now check if this piece is capable of moving in that direction (knight etc)
+topbot = "TOP";
+if (isHostingTheCheckersGame) then topbot = "BOTTOM" end
+
+
+
+--[[
+--problemcosteleporationbutok
+for i = 1, tablelength(CHESS_PIECE_MOVES[name .. " " .. topbot .. " ROWS"]) do
+if (r2-r1 == CHESS_PIECE_MOVES[name .. " " .. topbot .. " ROWS"][i]
+	and c2-c1 == CHESS_PIECE_MOVES[name .. " " .. topbot .. " COLUMNS"][i]) then
+	return true
+	end
+end]]
+
+attemptedLandingIndex = isSpaceOccupied(r2,c2);
+
+setStatusText("can't go there mate",8,VOICE_WRONG_TURN,noVoice)--to be overwritten
+if (name == "pawn") then
+if (topbot == "BOTTOM") then
+if (c2-c1==0 and r2-r1==1 and isSpaceOccupied(r2,c2) == -1 
+		or
+	r1 == 2 and c2-c1==0 and r2-r1==2 and isSpaceOccupied(r1+1,c2) == -1 and isSpaceOccupied(r1+2,c2) == -1
+	) then return true end 
+	if (abs(c2-c1)==1 and r2-r1==1 and isChessEnemy(r2,c2) ~= -1) then return true, isSpaceOccupied(r2,c2) end
+else--elsetop
+if (c2-c1==0 and r2-r1==-1 and isSpaceOccupied(r2,c2) == -1 
+		or
+	r1 == 7 and c2-c1==0 and r2-r1==-2 and isSpaceOccupied(r1-1,c2) == -1 and isSpaceOccupied(r1-2,c2) == -1
+	) then return true end
+	if (abs(c2-c1)==1 and r2-r1==-1 and isChessEnemy(r2,c2) ~= -1) then return true, isSpaceOccupied(r2,c2) end
+end--end elsetop
+end--end pawn
+
+if (name == "rook") then
+print("is rook")
+if (c2-c1==0 and r2~=r1) then
+print("yesthis")
+for y=r1+boolToPolarity(r2>r1),r2,boolToPolarity(r2>r1) do
+if (isSpaceOccupied(y,c2) ~= -1) then
+print("y=" .. y);
+	if (y ~= r2) then return false end--blocked
+	if (y == r2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end--take the peice
+end--end if
+end--end for
+return true--fallthrough
+end--end if rowmovement
+if (r2-r1==0 and c2~=c1) then
+for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
+	if (isSpaceOccupied(r2,x) ~= -1) then
+	if (x ~= c2) then return false end--blocked
+	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end
+	end--end if
+end--end for
+return true--fallthrough
+end--end if colmovement
+end
+
+
+
 
 setStatusText("huehue",8,VOICE_WRONG_TURN,noVoice);
-return true;
-
-
+return false;
 
 end--end function isValidChessMove
+function isChessEnemy(r,c)
+index = isSpaceOccupied(r,c) 
+if (index == -1) then return false end
+return pieces[index].team == TEAM_HOST and isHostingTheGame
+		or
+	   pieces[index].team == TEAM_GUEST and not(isHostingTheGame);
+end--end function isChessEnemy
+function boolToPolarity(bool)
+if (bool) then return 1 else return -1 end
+end--end function boolToPolarity
 --[[
 if noVoice == 555 then noVoice.
 function isValidCheckersMove - returns 2 values
@@ -679,6 +764,10 @@ CHESS_TEAMS = {TEAM_HOST,TEAM_HOST,TEAM_HOST,TEAM_HOST,
 			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,
 			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,
 			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST};
+CHESS_PIECE_MOVES = {
+["pawn TOP ROWS"] = {1,1},
+["pawn TOP COLUMNS"] = {-1,1}
+};
 
 local function createPieces()
 
@@ -707,21 +796,8 @@ tx = nil;
 };
 
 local kids = {backgroundFrame:GetChildren()};
---if (firstCheckerRun == true) then
 pieces[i].checkerFrame = CreateFrame("FRAME", "checkerFrame" .. i,
 								backgroundFrame);
---[[else--begin firstCheckerRun == false (recycle the frames from last game run.)
---find the handle on the existing frame, and align it with this data.
-for _,checker in ipairs(kids) do
-local name = checker:GetName();
-local index = tonumber(string.sub(name,strlen("checkerFrame")+1));
-if (index == i) then
-pieces[i].checkerFrame = checker;
-end--end if index == i
-end--end for iterator
-end--end firstCheckerRun == false]]
-print ("i is " .. i);
-print(pieces[i].team);
 --only allow the player to move his own pieces.
 if ((isHostingTheCheckersGame==true and pieces[i].team == TEAM_HOST) or 
 	(isHostingTheCheckersGame==false and pieces[i].team == TEAM_GUEST)) then
@@ -796,7 +872,11 @@ pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES
 else
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
 end]]
+if (pieces[i].team == TEAM_HOST) then
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/ak.tga');
+else
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/hk.tga');
+end
 pieces[i].checkerFrame:Show();
 
 
@@ -905,7 +985,6 @@ pieces[i].tx = pieces[i].checkerFrame:CreateTexture();
 if (pieces[i].team == TEAM_HOST) then
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/alliance_checker.tga');
 else
-print("reetho" .. i)
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/horde_checker.tga');
 end
 pieces[i].tx:SetAllPoints();
@@ -1115,9 +1194,9 @@ bgDragFrame:Show();
 if (isPlayingChess) then
 if (isHostingTheCheckersGame)
 then
-setStatusText("Welcome! You are Black.",50,-1);
+setStatusText("Welcome! You are Alliance.",50,-1);
 else
-setStatusText("Welcome! You are White.",50,-1)
+setStatusText("Welcome! You are Horde.",50,-1)
 end
 
 else
