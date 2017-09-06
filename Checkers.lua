@@ -432,7 +432,6 @@ if (not(sarray[1] == ">CHECKERS" or sarray[1] == ">CHESS")) then
 return false;
 end
 if (sarray[2] == "king") then
-print("ree")
 kingPiece(tonumber(sarray[3]));
 end
 --[[
@@ -502,7 +501,7 @@ return true;--displaymessageornotthing?
 end--end local function CheckersIncoming
 function CheckersOutgoing(ChatFrameSelf, event, message, author, ...)
 local sarray = checkersSplitString(message);
-if (sarray[1] == ">CHECKERS") then
+if (sarray[1] == ">CHECKERS" or sarray[1] == ">CHESS") then
 return true;
 end
 return false;
@@ -533,12 +532,24 @@ end--end for
 return -1;
 
 end
+
+--[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
+		landedRow,landedColumn, pieces[i].team,pieces[i].name);
+]]
+function isValidChessMove(thisPiece,r1,c1,r2,c2,team,name,noVoice)
+
+setStatusText("huehue",8,VOICE_WRONG_TURN,noVoice);
+return true;
+
+
+
+end--end function isValidChessMove
 --[[
 if noVoice == 555 then noVoice.
-function isValidMove - returns 2 values
+function isValidCheckersMove - returns 2 values
 returns (booleanValid [, takenPieceIndex])
 --]]
-local function isValidMove(thisPiece, r1, c1, r2, c2, team, king, noVoice)
+local function isValidCheckersMove(thisPiece, r1, c1, r2, c2, team, king, noVoice)
 --handle the attempted movement of pieces that are just display.
 if (thisPiece ~= -1 and pieces[thisPiece].alive == false) then return false; end
 
@@ -609,7 +620,7 @@ end--end piece take by host
 
 setStatusText("Nope",8,VOICE_INVALID_MOVE,noVoice);
 return false;--default case
-end--end isValidMove
+end--end isValidCheckersMove
 
 function thereAreValidTakesForPiece(i)
 
@@ -620,24 +631,179 @@ r = pieces[i].row;
 c = pieces[i].column;
 king = pieces[i].king;
 team = pieces[i].team;
---local function isValidMove(thisPiece, r1, c1, r2, c2, team, king)
-return (isValidMove(i,r,c,r-2,c-2,team,king,555)
+--local function isValidCheckersMove(thisPiece, r1, c1, r2, c2, team, king)
+return (isValidCheckersMove(i,r,c,r-2,c-2,team,king,555)
 	or
-	isValidMove(i,r,c,r-2,c+2,team,king,555)
+	isValidCheckersMove(i,r,c,r-2,c+2,team,king,555)
 	or
-	isValidMove(i,r,c,r+2,c+2,team,king,555)
+	isValidCheckersMove(i,r,c,r+2,c+2,team,king,555)
 	or
-	isValidMove(i,r,c,r+2,c-2,team,king,555)
+	isValidCheckersMove(i,r,c,r+2,c-2,team,king,555)
 	);
 end--end function thereAreValidTakesForPiece
 
+CHESS_PIECE_NAMES = {"rook","knight","bishop","king",
+					"queen","bishop","knight","rook",
+					"pawn","pawn","pawn","pawn",
+					"pawn","pawn","pawn","pawn",
+					
+					"pawn","pawn","pawn","pawn",
+					"pawn","pawn","pawn","pawn",
+					"rook","knight","bishop","king",
+					"queen","bishop","knight","rook"
+					};
+CHESS_ROWS = {1,1,1,1,
+			  1,1,1,1,
+			  2,2,2,2,
+			  2,2,2,2,
+			  
+			  7,7,7,7,
+			  7,7,7,7,
+			  8,8,8,8,
+			  8,8,8,8};
+CHESS_COLUMNS = {1,2,3,4,
+				 5,6,7,8,
+				 1,2,3,4,
+				 5,6,7,8,
+				 
+				 1,2,3,4,
+				 5,6,7,8,
+				 1,2,3,4,
+				 5,6,7,8
+				 };
+CHESS_TEAMS = {TEAM_HOST,TEAM_HOST,TEAM_HOST,TEAM_HOST,
+			   TEAM_HOST,TEAM_HOST,TEAM_HOST,TEAM_HOST,
+			   TEAM_HOST,TEAM_HOST,TEAM_HOST,TEAM_HOST,
+			   TEAM_HOST,TEAM_HOST,TEAM_HOST,TEAM_HOST,
+			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,
+			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,
+			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,
+			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST};
 
 local function createPieces()
+
+if (isPlayingChess) then
+numPieces = 8*2*2; 
+else
+numPieces = 24;
+end
+
+if (isPlayingChess) then
+for i = 1, numPieces do
+pieces[i] = {
+row = CHESS_ROWS[i];--row 1 is the bottom row.
+column = CHESS_COLUMNS[i];
+team = CHESS_TEAMS[i];
+name = CHESS_PIECE_NAMES[i];
+king = false;--nil
+alive = true;
+checkerFrame;
+tx = nil;
+};
+
+local kids = {backgroundFrame:GetChildren()};
+if (firstCheckerRun == true) then
+pieces[i].checkerFrame = CreateFrame("FRAME", "checkerFrame" .. i,
+								backgroundFrame);
+else--begin firstCheckerRun == false (recycle the frames from last game run.)
+--find the handle on the existing frame, and align it with this data.
+for _,checker in ipairs(kids) do
+local name = checker:GetName();
+local index = tonumber(string.sub(name,strlen("checkerFrame")+1));
+if (index == i) then
+pieces[i].checkerFrame = checker;
+end--end if index == i
+end--end for iterator
+end--end firstCheckerRun == false
+print ("i is " .. i);
+print(pieces[i].team);
+--only allow the player to move his own pieces.
+if ((isHostingTheCheckersGame==true and pieces[i].team == TEAM_HOST) or 
+	(isHostingTheCheckersGame==false and pieces[i].team == TEAM_GUEST)) then
+pieces[i].checkerFrame:SetMovable(true);
+pieces[i].checkerFrame:EnableMouse(true);
+pieces[i].checkerFrame:RegisterForDrag("LeftButton");
+pieces[i].checkerFrame:SetScript("OnDragStart",pieces[i].checkerFrame.StartMoving);
+pieces[i].checkerFrame:SetScript("OnDragStop", function(self)
+self:StopMovingOrSizing();
+local x, y = self:GetLeft(), self:GetBottom();
+--make x and y relative to the checker board rather than absolute.
+x = x - backgroundFrame:GetLeft();
+y = y - backgroundFrame:GetBottom();
+--make x and y be the middle of the checker piece.
+x = x + widthB/8 / 2;
+y = y + widthB/8 / 2;
+--make sure checkers piece lands on a valid tile.
+local landedRow, landedColumn = getRow(y), getColumn(x);
+--board piece move logic!
+isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
+		landedRow,landedColumn, pieces[i].team,pieces[i].name);
+		
+if (takenIndex == nil) then takenIndex = -1; end
+if (isValid == true)
+		then
+		--this will be done on the other players machine too via socket message
+		pieces[i].row = landedRow;
+		pieces[i].column = landedColumn;
+		if ((pieces[i].row == 1 or pieces[i].row == 8) and pieces[i].name=="pawn")
+		then
+		queenPiece(i,true);
+		end
+		--check if a piece was taken
+		if (takenIndex and takenIndex ~= -1)
+		then
+		killPiece(takenIndex);
+		end--end taken
+		local endMyTurn = 1;
+		
+		--done taking pieces. end the turn.
+		
+		--TODO make them move if king is in check idk
+		
+		
+		setStatusText("Turn ended",4,-1);
+		setCheckersTurn(false);
+		
+		--broadcast the move via turnUpdateMessage
+		reply(">CHECKERS update " .. i .. " " .. landedRow .. " " ..
+					landedColumn .. " " .. takenIndex .. " " .. endMyTurn);
+		else
+		--was not a valid move -- put it back!
+		end
+		pieces[i].checkerFrame:ClearAllPoints();
+		pieces[i].checkerFrame:SetPoint("BOTTOMLEFT",convertColumnToX(pieces[i].column),
+				convertRowToY(pieces[i].row));
+end); 
+else
+--cleanup from last run so you cant move enemies pieces
+pieces[i].checkerFrame:SetMovable(false);
+pieces[i].checkerFrame:EnableMouse(false);
+end--end isOneOfMyPiecesSoLetMeMoveIt
+
+pieces[i].checkerFrame:SetPoint("BOTTOMLEFT",(CHESS_COLUMNS[i]-1)*widthB/8,(CHESS_ROWS[i]-1)*heightB/8);
+pieces[i].checkerFrame:SetSize(widthB/8,heightB/8);
+pieces[i].tx = pieces[i].checkerFrame:CreateTexture();
+pieces[i].tx:SetAllPoints();
+pieces[i].tx:SetAlpha(1);
+--[[
+if (pieces[i].team == TEAM_HOST) then
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_black.tga');
+else
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
+end]]
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/alliance_checker.tga');
+pieces[i].checkerFrame:Show();
+
+
+
+end--end for chesspieces
+
+end--end isPlayingChess
+
+if (not(isPlayingChess)) then
 local r,c = 1,2;
-local t = TEAM_HOST;
-
-
-for i = 1, 24 do 
+local t = TEAM_HOST;--placeholderfornowwhat
+for i = 1, numPieces do 
 pieces[i] = {
 row = r;--row 1 is the bottom row.
 column = c;
@@ -652,7 +818,7 @@ local kids = {backgroundFrame:GetChildren()};
 if (firstCheckerRun == true) then
 pieces[i].checkerFrame = CreateFrame("FRAME", "checkerFrame" .. i,
 								backgroundFrame);
-else--begin firstCheckerRun == false
+else--begin firstCheckerRun == false (recycle the frames from last game run.)
 --find the handle on the existing frame, and align it with this data.
 for _,checker in ipairs(kids) do
 local name = checker:GetName();
@@ -682,7 +848,7 @@ y = y + widthB/8 / 2;
 --make sure checkers piece lands on a valid tile.
 local landedRow, landedColumn = getRow(y), getColumn(x);
 --board piece move logic!
-isValid, takenIndex = isValidMove(i,pieces[i].row,pieces[i].column,
+isValid, takenIndex = isValidCheckersMove(i,pieces[i].row,pieces[i].column,
 		landedRow,landedColumn, pieces[i].team,pieces[i].king);
 if (isValid == false and isAPieceTakeTurn == true) then
 setStatusText("You must take a piece.",8,-1);
@@ -730,6 +896,10 @@ if (isValid == true)
 		pieces[i].checkerFrame:SetPoint("BOTTOMLEFT",convertColumnToX(pieces[i].column),
 				convertRowToY(pieces[i].row));
 end); 
+else
+--cleanup from last run so you cant move enemies pieces
+pieces[i].checkerFrame:SetMovable(false);
+pieces[i].checkerFrame:EnableMouse(false);
 end--end isOneOfMyPiecesSoLetMeMoveIt
 pieces[i].checkerFrame:SetPoint("BOTTOMLEFT",(c-1)*widthB/8,(r-1)*heightB/8);
 pieces[i].checkerFrame:SetSize(widthB/8,heightB/8);
@@ -742,6 +912,7 @@ else
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/horde_checker.tga');
 end
 pieces[i].checkerFrame:Show();
+
 
 c = c + 2;
 if (c > 8) then r = r + 1; 
@@ -756,6 +927,7 @@ c = 1;
 end--end c == 9
 end--end if c > 8
 end--end for
+end--end if playing checkers
 
 
 firstCheckerRun = false;--the frames have all been instantiated.
@@ -941,12 +1113,22 @@ checkersPopFrame:Hide();
 backgroundFrame:SetFrameStrata('MEDIUM');
 backgroundFrame:Show(); 
 bgDragFrame:Show();
+if (isPlayingChess) then
+if (isHostingTheCheckersGame)
+then
+setStatusText("Welcome! You are Black.",50,-1);
+else
+setStatusText("Welcome! You are White.",50,-1)
+end
+
+else
 if (isHostingTheCheckersGame)
 then
 setStatusText("Welcome! You are Alliance.",50,-1);
 else
 setStatusText("Welcome! You are Horde.",50,-1)
 end
+end--end is chess
 
 end--end function startCheckers
 
@@ -988,7 +1170,13 @@ local kids = {backgroundFrame:GetChildren()};
 for _,checker in ipairs(kids) do
 local name = checker:GetName();
 local index = tonumber(string.sub(name,strlen("checkerFrame")+1));
-if (index and index >= 1 and index <= 24) then
+if (isPlayingChess) then
+numPieces = 8*2*2;
+else
+numPieces = 24;
+end
+
+if (index and index >= 1 and index <= numPieces) then
 pieces[index].checkerFrame:SetPoint("BOTTOMLEFT",
 				convertColumnToX(pieces[index].column),
 				convertRowToY(pieces[index].row));
