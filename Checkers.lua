@@ -570,7 +570,7 @@ if (r2-r1 == CHESS_PIECE_MOVES[name .. " " .. topbot .. " ROWS"][i]
 end]]
 
 attemptedLandingIndex = isSpaceOccupied(r2,c2);
-
+	
 setStatusText("can't go there mate",8,VOICE_WRONG_TURN,noVoice)--to be overwritten
 if (name == "pawn") then
 if (topbot == "BOTTOM") then
@@ -578,13 +578,13 @@ if (c2-c1==0 and r2-r1==1 and isSpaceOccupied(r2,c2) == -1
 		or
 	r1 == 2 and c2-c1==0 and r2-r1==2 and isSpaceOccupied(r1+1,c2) == -1 and isSpaceOccupied(r1+2,c2) == -1
 	) then return true end 
-	if (abs(c2-c1)==1 and r2-r1==1 and isChessEnemy(r2,c2) ~= -1) then return true, isSpaceOccupied(r2,c2) end
+	if (abs(c2-c1)==1 and r2-r1==1 and isChessEnemy(r2,c2)) then return true, isSpaceOccupied(r2,c2) end
 else--elsetop
 if (c2-c1==0 and r2-r1==-1 and isSpaceOccupied(r2,c2) == -1 
 		or
 	r1 == 7 and c2-c1==0 and r2-r1==-2 and isSpaceOccupied(r1-1,c2) == -1 and isSpaceOccupied(r1-2,c2) == -1
 	) then return true end
-	if (abs(c2-c1)==1 and r2-r1==-1 and isChessEnemy(r2,c2) ~= -1) then return true, isSpaceOccupied(r2,c2) end
+	if (abs(c2-c1)==1 and r2-r1==-1 and isChessEnemy(r2,c2)) then return true, isSpaceOccupied(r2,c2) end
 end--end elsetop
 end--end pawn
 
@@ -595,8 +595,8 @@ print("yesthis")
 for y=r1+boolToPolarity(r2>r1),r2,boolToPolarity(r2>r1) do
 if (isSpaceOccupied(y,c2) ~= -1) then
 print("y=" .. y);
-	if (y ~= r2) then return false end--blocked
 	if (y == r2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end--take the peice
+	return false
 end--end if
 end--end for
 return true--fallthrough
@@ -604,8 +604,8 @@ end--end if rowmovement
 if (r2-r1==0 and c2~=c1) then
 for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
 	if (isSpaceOccupied(r2,x) ~= -1) then
-	if (x ~= c2) then return false end--blocked
 	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end
+	return false
 	end--end if
 end--end for
 return true--fallthrough
@@ -621,10 +621,12 @@ return false;
 end--end function isValidChessMove
 function isChessEnemy(r,c)
 index = isSpaceOccupied(r,c) 
+
 if (index == -1) then return false end
-return pieces[index].team == TEAM_HOST and isHostingTheGame
+print("it is occupied")
+return (pieces[index].team == TEAM_GUEST and isHostingTheCheckersGame)
 		or
-	   pieces[index].team == TEAM_GUEST and not(isHostingTheGame);
+	   (pieces[index].team == TEAM_HOST and isHostingTheCheckersGame == false)
 end--end function isChessEnemy
 function boolToPolarity(bool)
 if (bool) then return 1 else return -1 end
