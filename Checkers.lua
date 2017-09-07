@@ -287,9 +287,11 @@ return;--cant send requests in any other mode.
 end
 
 if (chessBool) then
+tex:SetTexture('Interface/AddOns/Checkers/images/chess_background.tga');
 isPlayingChess = true;
 iAmAskingForChessNotCheckers = true;
 else
+tex:SetTexture('Interface/AddOns/Checkers/images/checkers_background.tga');
 iAmAskingForChessNotCheckers = false;
 isPlayingChess = false;
 end--end if
@@ -329,6 +331,11 @@ end--end local function slashCheckers
 
 
 local function putConfirmationBox()
+if (isPlayingChess) then
+tex:SetTexture('Interface/AddOns/Checkers/images/chess_background.tga');
+else
+tex:SetTexture('Interface/AddOns/Checkers/images/checkers_background.tga');
+end
 checkersPopFrame:SetPoint('CENTER',0,125)
 local tex = checkersPopFrame:CreateTexture();
 tex:SetAllPoints();
@@ -608,7 +615,8 @@ end--end rook
 if (name == "bishop") then
 if (abs(r2-r1)~=abs(c2-c1)) then return false end;--not a diagonal movement!
 for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
-if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*(x-c1),x) ~= -1) then
+
+if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*abs(x-c1),x) ~= -1) then
 
 	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex 
 	end 
@@ -653,15 +661,18 @@ end--end if colmovement
 --copypasting from bishops
 if (abs(r2-r1)==abs(c2-c1)) then
 for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
-if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*(x-c1),x) ~= -1) then
+print("yRow= " .. (r1+boolToPolarity(r2>r1)*abs(x-c1)).. " xCol=" .. x)
+if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*abs(x-c1),x) ~= -1) then
 
 	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex 
 	end 
+	
 	return false
 end--end if
 end--end for
 return true, attemptedLandingIndex
 end--end if diagonalmovement
+
 end--end name==queen
 
 
@@ -914,16 +925,11 @@ pieces[i].checkerFrame:SetSize(widthB/8,heightB/8);
 pieces[i].tx = pieces[i].checkerFrame:CreateTexture();
 pieces[i].tx:SetAllPoints();
 pieces[i].tx:SetAlpha(1);
---[[
+
 if (pieces[i].team == TEAM_HOST) then
-pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_black.tga');
-else
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
-end]]
-if (pieces[i].team == TEAM_HOST) then
-pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/ak.tga');
 else
-pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/hk.tga');
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_black.tga');
 end
 pieces[i].checkerFrame:Show();
 
@@ -1242,9 +1248,9 @@ bgDragFrame:Show();
 if (isPlayingChess) then
 if (isHostingTheCheckersGame)
 then
-setStatusText("Welcome! You are Alliance.",50,-1);
+setStatusText("Welcome! You are White.",50,-1);
 else
-setStatusText("Welcome! You are Horde.",50,-1)
+setStatusText("Welcome! You are Black.",50,-1)
 end
 
 else
