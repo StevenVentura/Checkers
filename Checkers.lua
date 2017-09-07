@@ -537,8 +537,7 @@ end--end function isSpaceOCcupied
 		landedRow,landedColumn, pieces[i].team,pieces[i].name);
 ]]
 function isValidChessMove(thisPiece,r1,c1,r2,c2,team,name,noVoice)
-print("r2,c2 is " .. r2 .. "," .. c2);
-print("r1,c1 is " .. r1 .. "," .. c1);
+
 
 --handle the attempted movement of pieces that are just display.
 if (thisPiece ~= -1 and pieces[thisPiece].alive == false) then return false; end
@@ -548,6 +547,12 @@ if (isMyCheckersTurn == false) then
 setStatusText("It is their turn.",8,VOICE_WRONG_TURN,noVoice);
 return false
 end;
+--if he doesnt move >:-(
+if (r1 == r2 and c1 == c2) then 
+setStatusText("You have to move something.",8,VOICE_INVALID_MOVE,noVoice);
+return false
+end
+
 --check board boundaries
 if (r2 <= 0 or r2 >= 9 or c2 <= 0 or c2 >= 9) then
 setStatusText("Out of bounds",8,VOICE_OUT_OF_RANGE,noVoice);
@@ -560,14 +565,6 @@ if (isHostingTheCheckersGame) then topbot = "BOTTOM" end
 
 
 
---[[
---problemcosteleporationbutok
-for i = 1, tablelength(CHESS_PIECE_MOVES[name .. " " .. topbot .. " ROWS"]) do
-if (r2-r1 == CHESS_PIECE_MOVES[name .. " " .. topbot .. " ROWS"][i]
-	and c2-c1 == CHESS_PIECE_MOVES[name .. " " .. topbot .. " COLUMNS"][i]) then
-	return true
-	end
-end]]
 
 attemptedLandingIndex = isSpaceOccupied(r2,c2);
 	
@@ -608,9 +605,21 @@ for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
 	return false
 	end--end if
 end--end for
-return true--fallthrough
+return true, attemptedLandingIndex--fallthrough
 end--end if colmovement
-end
+end--end rook
+if (name == "bishop") then
+if (abs(r2-r1)~=abs(c2-c1)) then return false end;--not a diagonal movement!
+for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
+if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*(x-c1),x) ~= -1) then
+
+	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex 
+	end 
+	return false
+end--end if
+end--end for
+return true, attemptedLandingIndex
+end--end bishop
 
 
 
@@ -766,10 +775,6 @@ CHESS_TEAMS = {TEAM_HOST,TEAM_HOST,TEAM_HOST,TEAM_HOST,
 			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,
 			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,
 			   TEAM_GUEST,TEAM_GUEST,TEAM_GUEST,TEAM_GUEST};
-CHESS_PIECE_MOVES = {
-["pawn TOP ROWS"] = {1,1},
-["pawn TOP COLUMNS"] = {-1,1}
-};
 
 local function createPieces()
 
