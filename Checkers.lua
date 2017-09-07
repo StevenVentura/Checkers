@@ -586,12 +586,9 @@ end--end elsetop
 end--end pawn
 
 if (name == "rook") then
-print("is rook")
 if (c2-c1==0 and r2~=r1) then
-print("yesthis")
 for y=r1+boolToPolarity(r2>r1),r2,boolToPolarity(r2>r1) do
 if (isSpaceOccupied(y,c2) ~= -1) then
-print("y=" .. y);
 	if (y == r2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end--take the peice
 	return false
 end--end if
@@ -621,6 +618,51 @@ end--end for
 return true, attemptedLandingIndex
 end--end bishop
 
+if (name == "knight") then
+return (isChessEnemy(r2,c2) or isSpaceOccupied(r2,c2)==-1) and ((abs(r2-r1)==1 and abs(c2-c1) == 2 
+				or
+					abs(r2-r1)==2 and abs(c2-c1) == 1)), attemptedLandingIndex;
+end--end name==knight
+
+if (name == "king") then
+return (isChessEnemy(r2,c2) or isSpaceOccupied(r2,c2)==-1) and (abs(r2-r1) <= 1 and abs(c2-c1) <= 1), attemptedLandingIndex;
+end--end name==king
+
+if (name == "queen") then
+--copypsated from rook.
+if (c2-c1==0 and r2~=r1) then
+for y=r1+boolToPolarity(r2>r1),r2,boolToPolarity(r2>r1) do
+if (isSpaceOccupied(y,c2) ~= -1) then
+	if (y == r2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end--take the peice
+	return false
+end--end if
+end--end for
+return true--fallthrough
+end--end if rowmovement
+if (r2-r1==0 and c2~=c1) then
+for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
+	if (isSpaceOccupied(r2,x) ~= -1) then
+	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end
+	return false
+	end--end if
+end--end for
+
+return true, attemptedLandingIndex--fallthrough
+end--end if colmovement
+
+--copypasting from bishops
+if (abs(r2-r1)==abs(c2-c1)) then
+for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
+if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*(x-c1),x) ~= -1) then
+
+	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex 
+	end 
+	return false
+end--end if
+end--end for
+return true, attemptedLandingIndex
+end--end if diagonalmovement
+end--end name==queen
 
 
 
@@ -632,7 +674,6 @@ function isChessEnemy(r,c)
 index = isSpaceOccupied(r,c) 
 
 if (index == -1) then return false end
-print("it is occupied")
 return (pieces[index].team == TEAM_GUEST and isHostingTheCheckersGame)
 		or
 	   (pieces[index].team == TEAM_HOST and isHostingTheCheckersGame == false)
