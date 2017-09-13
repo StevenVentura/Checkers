@@ -20,6 +20,7 @@ local CHECKERS_REQUEST_ACKNOWLEDGED = ">CHECKERS !hold on leme think bout it m8!
 local CHECKERS_ACCEPT_REQUEST_MESSAGE = ">CHECKERS !Yes, i'd love to play, that game is 8/8 m8!";
 local CHECKERS_DECLINE_REQUEST_MESSAGE = ">CHECKERS !No, im too busy with other stuff m8 sorry :-(!";
 local CHECKERS_LEAVING_MESSAGE = '>CHECKERS !BYE BYE!';
+local CHECKERS_QUEEN_MESSAGE = '>CHECKERS QUEEN';
 checkersOpponentName = "Invalid Name";
 local heightB = 500;
 local widthB = heightB;--square board.
@@ -470,6 +471,9 @@ if (message == CHECKERS_ACCEPT_REQUEST_MESSAGE) then
 startCheckers();
 
 end--end message = CHECKERS_ACCEPT_REQUEST_MESSAGE
+if (message == CHECKERS_QUEEN_MESSAGE) then
+queenPiece(sarray[3]);--should work if i dont change the message
+end
 if (message == CHECKERS_REQUEST_MESSAGE and checkersMode == MODE_WAITING_FOR_REQUESTS) then
 checkersOpponentName = author;
 isPlayingChess = false;
@@ -540,10 +544,18 @@ return -1;
 
 end--end function isSpaceOCcupied
 
+function getPieceNameAtLocation(r1,c1)
+return pieces[isSpaceOccupied(r1,c1)].name;
+return nil;
+end
 --[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
 		landedRow,landedColumn, pieces[i].team,pieces[i].name);
 ]]
 function isValidChessMove(thisPiece,r1,c1,r2,c2,team,name,noVoice)
+
+if (myKingIsInCheck() and name ~= "king") then setStatusText("You are in check!",8,VOICE_ENEMY_PIECE_KINGED,noVoice) return false end
+--todo: add da movement for da king xd
+
 
 
 --handle the attempted movement of pieces that are just display.
@@ -568,7 +580,7 @@ end--end out of board bounds
 
 --now check if this piece is capable of moving in that direction (knight etc)
 topbot = "TOP";
-if (isHostingTheCheckersGame) then topbot = "BOTTOM" end
+if (team == TEAM_HOST) then topbot = "BOTTOM" end
 
 
 
@@ -582,13 +594,13 @@ if (c2-c1==0 and r2-r1==1 and isSpaceOccupied(r2,c2) == -1
 		or
 	r1 == 2 and c2-c1==0 and r2-r1==2 and isSpaceOccupied(r1+1,c2) == -1 and isSpaceOccupied(r1+2,c2) == -1
 	) then return true end 
-	if (abs(c2-c1)==1 and r2-r1==1 and isChessEnemy(r2,c2)) then return true, isSpaceOccupied(r2,c2) end
+	if (abs(c2-c1)==1 and r2-r1==1 and isChessEnemy(r2,c2,thisPiece)) then return true, isSpaceOccupied(r2,c2) end
 else--elsetop
 if (c2-c1==0 and r2-r1==-1 and isSpaceOccupied(r2,c2) == -1 
 		or
 	r1 == 7 and c2-c1==0 and r2-r1==-2 and isSpaceOccupied(r1-1,c2) == -1 and isSpaceOccupied(r1-2,c2) == -1
 	) then return true end
-	if (abs(c2-c1)==1 and r2-r1==-1 and isChessEnemy(r2,c2)) then return true, isSpaceOccupied(r2,c2) end
+	if (abs(c2-c1)==1 and r2-r1==-1 and isChessEnemy(r2,c2,thisPiece)) then return true, isSpaceOccupied(r2,c2) end
 end--end elsetop
 end--end pawn
 
@@ -596,7 +608,7 @@ if (name == "rook") then
 if (c2-c1==0 and r2~=r1) then
 for y=r1+boolToPolarity(r2>r1),r2,boolToPolarity(r2>r1) do
 if (isSpaceOccupied(y,c2) ~= -1) then
-	if (y == r2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end--take the peice
+	if (y == r2 and isChessEnemy(r2,c2,thisPiece)) then return true, attemptedLandingIndex end--take the peice
 	return false
 end--end if
 end--end for
@@ -605,7 +617,7 @@ end--end if rowmovement
 if (r2-r1==0 and c2~=c1) then
 for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
 	if (isSpaceOccupied(r2,x) ~= -1) then
-	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end
+	if (x == c2 and isChessEnemy(r2,c2,thisPiece)) then return true, attemptedLandingIndex end
 	return false
 	end--end if
 end--end for
@@ -618,7 +630,7 @@ for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
 
 if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*abs(x-c1),x) ~= -1) then
 
-	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex 
+	if (x == c2 and isChessEnemy(r2,c2,thisPiece)) then return true, attemptedLandingIndex 
 	end 
 	return false
 end--end if
@@ -627,13 +639,13 @@ return true, attemptedLandingIndex
 end--end bishop
 
 if (name == "knight") then
-return (isChessEnemy(r2,c2) or isSpaceOccupied(r2,c2)==-1) and ((abs(r2-r1)==1 and abs(c2-c1) == 2 
+return (isChessEnemy(r2,c2,thisPiece) or isSpaceOccupied(r2,c2)==-1) and ((abs(r2-r1)==1 and abs(c2-c1) == 2 
 				or
 					abs(r2-r1)==2 and abs(c2-c1) == 1)), attemptedLandingIndex;
 end--end name==knight
 
 if (name == "king") then
-return (isChessEnemy(r2,c2) or isSpaceOccupied(r2,c2)==-1) and (abs(r2-r1) <= 1 and abs(c2-c1) <= 1), attemptedLandingIndex;
+return (isChessEnemy(r2,c2,thisPiece) or isSpaceOccupied(r2,c2)==-1) and (abs(r2-r1) <= 1 and abs(c2-c1) <= 1), attemptedLandingIndex;
 end--end name==king
 
 if (name == "queen") then
@@ -641,7 +653,7 @@ if (name == "queen") then
 if (c2-c1==0 and r2~=r1) then
 for y=r1+boolToPolarity(r2>r1),r2,boolToPolarity(r2>r1) do
 if (isSpaceOccupied(y,c2) ~= -1) then
-	if (y == r2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end--take the peice
+	if (y == r2 and isChessEnemy(r2,c2,thisPiece)) then return true, attemptedLandingIndex end--take the peice
 	return false
 end--end if
 end--end for
@@ -650,7 +662,7 @@ end--end if rowmovement
 if (r2-r1==0 and c2~=c1) then
 for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
 	if (isSpaceOccupied(r2,x) ~= -1) then
-	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex end
+	if (x == c2 and isChessEnemy(r2,c2,thisPiece)) then return true, attemptedLandingIndex end
 	return false
 	end--end if
 end--end for
@@ -661,10 +673,10 @@ end--end if colmovement
 --copypasting from bishops
 if (abs(r2-r1)==abs(c2-c1)) then
 for x=c1+boolToPolarity(c2>c1),c2,boolToPolarity(c2>c1) do
-print("yRow= " .. (r1+boolToPolarity(r2>r1)*abs(x-c1)).. " xCol=" .. x)
+
 if (isSpaceOccupied(r1+boolToPolarity(r2>r1)*abs(x-c1),x) ~= -1) then
 
-	if (x == c2 and isChessEnemy(r2,c2)) then return true, attemptedLandingIndex 
+	if (x == c2 and isChessEnemy(r2,c2,thisPiece)) then return true, attemptedLandingIndex 
 	end 
 	
 	return false
@@ -681,7 +693,9 @@ setStatusText("huehue",8,VOICE_WRONG_TURN,noVoice);
 return false;
 
 end--end function isValidChessMove
-function isChessEnemy(r,c)
+function isChessEnemy(r,c,pieceIndex)
+if (pieceIndex) then return pieces[isSpaceOccupied(r,c)].team == pieces[pieceIndex].team end
+
 index = isSpaceOccupied(r,c) 
 
 if (index == -1) then return false end
@@ -790,6 +804,44 @@ return (isValidCheckersMove(i,r,c,r-2,c-2,team,king,555)
 	);
 end--end function thereAreValidTakesForPiece
 
+
+--[[
+function myKingIsInCheck(hypoKingRow, hypoKingCol):
+with zero parameters, it checks if MY king is in check.
+with 2 parameters, it checks if the king at this location would be in check.
+
+]]
+function myKingIsInCheck(hypoKingRow, hypoKingCol)
+kingid = -1;
+for i = 1, 8*2*2 do
+if (pieces[i].name == "king" and pieceIsMyFaction(i)) then
+kingid = i;
+end--end if
+end--end for
+kingrow= pieces[kingid].row;
+kingcol= pieces[kingid].column;
+if (hypoKingRow) then
+kingrow = hypoKingRow; end
+if (hypoKingCol) then
+kingcol = hypoKingCol; end
+
+--iterate through all the enemy pieces. can any of them attack the king?
+for i = 1, 8*2*2 do
+
+--check if he can touch my king at this location
+--[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
+		landedRow,landedColumn, pieces[i].team,pieces[i].name);
+]]
+if (isValidChessMove(i,pieces[i].row,pieces[i].column,kingrow,kingcol,pieces[i].team,pieces[i].name)) then
+return true;
+end
+
+end--end for
+
+return false;
+
+end--end function myKingIsInCheck
+
 CHESS_PIECE_NAMES = {"rook","knight","bishop","king",
 					"queen","bishop","knight","rook",
 					"pawn","pawn","pawn","pawn",
@@ -852,6 +904,7 @@ king = false;--nil
 alive = true;
 checkerFrame;
 tx = nil;
+hasBeenMoved = false;
 };
 
 local kids = {backgroundFrame:GetChildren()};
@@ -885,9 +938,11 @@ if (isValid == true)
 		--this will be done on the other players machine too via socket message
 		pieces[i].row = landedRow;
 		pieces[i].column = landedColumn;
+		pieces[i].hasBeenMoved = true;
+		
 		if ((pieces[i].row == 1 or pieces[i].row == 8) and pieces[i].name=="pawn")
 		then
-		queenPiece(i,true);
+		queenPiece(i);
 		end
 		--check if a piece was taken
 		if (takenIndex and takenIndex ~= -1)
@@ -897,6 +952,7 @@ if (isValid == true)
 		local endMyTurn = 1;
 		
 		--done taking pieces. end the turn.
+		
 		
 		--TODO make them move if king is in check idk
 		
@@ -930,6 +986,7 @@ if (pieces[i].team == TEAM_HOST) then
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
 else
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_black.tga');
+peices[i].tx:SetRotation(180,0.5,0.5);
 end
 pieces[i].checkerFrame:Show();
 
@@ -1064,6 +1121,41 @@ end--end if playing checkers
 
 firstCheckerRun = false;--the frames have all been instantiated.
 end--end function createPieces
+
+--when the pawn gets to the end of the board
+--same function is called whether its on the server or the client.
+function queenPiece(index) 
+pieces[i].name = "queen";
+--pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
+if (index <= 16) then team = TEAM_HOST else team = TEAM_GUEST end
+
+if (team == TEAM_HOST) then
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/queen_white.tga');
+else
+pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/queen_black.tga');
+end
+
+--now tell the other computer to do it
+if ((team == TEAM_HOST and (isHostingTheCheckersGame == true))
+	or
+	(team == TEAM_GUEST and (isHostingTheCheckersGame == false))
+	then
+reply(CHECKERS_QUEEN_MESSAGE .. " " .. index);	
+	end
+
+--[[pieces[i] = {
+row = CHESS_ROWS[i];--row 1 is the bottom row.
+column = CHESS_COLUMNS[i];
+team = CHESS_TEAMS[i];
+name = CHESS_PIECE_NAMES[i];
+king = false;--nil
+alive = true;
+checkerFrame;
+tx = nil;
+};]]
+
+
+end--end function queenPiece
 
 function populateCheckersSounds()
 local placeHolder = "";
