@@ -558,6 +558,10 @@ if (myKingIsInCheck() and name ~= "king") then setStatusText("You are in check!"
 --todo: add da movement for da king xd
 end
 
+if (name == "king" and internal == nil or internal == false) then
+if (myKingIsInCheck(r2,c2)) then setStatusText("That would put you in check",8,VOICE_ENEMY_PIECE_KINGED) return false end
+end--end trying to move the king during check
+
 
 --handle the attempted movement of pieces that are just display.
 if (thisPiece ~= -1 and pieces[thisPiece].alive == false) then return false; end
@@ -822,10 +826,12 @@ end--end if
 end--end for
 kingrow= pieces[kingid].row;
 kingcol= pieces[kingid].column;
-if (hypoKingRow) then
-kingrow = hypoKingRow; end
-if (hypoKingCol) then
-kingcol = hypoKingCol; end
+
+if (hypoKingRow or hypoKingCol) then
+--substitute and then unsub after for loop
+pieces[kingid].row = hypoKingRow;
+pieces[kingid].column = hypoKingCol;
+end
 
 --iterate through all the enemy pieces. can any of them attack the king?
 for i = 1, 8*2*2 do
@@ -834,12 +840,22 @@ for i = 1, 8*2*2 do
 --[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
 		landedRow,landedColumn, pieces[i].team,pieces[i].name);
 ]]
-if (isValidChessMove(i,pieces[i].row,pieces[i].column,kingrow,kingcol,pieces[i].team,pieces[i].name,nil,true)) then
-print("r1=" .. pieces[i].row .. ", c1 = " .. pieces[i].column .. ", kingrow=" .. kingrow .. " kingcol = " .. kingcol);
+if (pieces[i].team ~= pieces[kingid].team 
+	and
+	not(pieces[i].row == pieces[kingid].row and pieces[i].column == pieces[kingid].column)
+	and 
+	isValidChessMove(i,pieces[i].row,pieces[i].column,pieces[kingid].row,pieces[kingid].column,pieces[i].team,pieces[i].name,nil,true)) then
+--undo
+--print("ra= " .. pieces[i].row .. ",rb=" .. pieces[kingid].row .. ",ca=" .. pieces[i].column .. ",cb=" .. pieces[kingid].column);
+pieces[kingid].row = kingrow;
+pieces[kingid].column = kingcol;
 return true;
 end--end if
 
 end--end for
+--undo
+pieces[kingid].row = kingrow;
+pieces[kingid].column = kingcol;
 
 return false;
 
