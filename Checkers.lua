@@ -20,7 +20,6 @@ local CHECKERS_REQUEST_ACKNOWLEDGED = ">CHECKERS !hold on leme think bout it m8!
 local CHECKERS_ACCEPT_REQUEST_MESSAGE = ">CHECKERS !Yes, i'd love to play, that game is 8/8 m8!";
 local CHECKERS_DECLINE_REQUEST_MESSAGE = ">CHECKERS !No, im too busy with other stuff m8 sorry :-(!";
 local CHECKERS_LEAVING_MESSAGE = '>CHECKERS !BYE BYE!';
-local CHECKERS_QUEEN_MESSAGE = '>CHECKERS QUEEN';
 checkersOpponentName = "Invalid Name";
 local heightB = 500;
 local widthB = heightB;--square board.
@@ -442,6 +441,9 @@ end
 if (sarray[2] == "king") then
 kingPiece(tonumber(sarray[3]));
 end
+if (sarray[2] == "queen") then
+queenPiece(tonumber(sarray[3]));--should work if i dont change the message
+end--end queen
 --[[
 turnUpdateMessage:
 >CHECKERS update moveIndex r2 c2 removedIndex turnEnded
@@ -471,9 +473,7 @@ if (message == CHECKERS_ACCEPT_REQUEST_MESSAGE) then
 startCheckers();
 
 end--end message = CHECKERS_ACCEPT_REQUEST_MESSAGE
-if (message == CHECKERS_QUEEN_MESSAGE) then
-queenPiece(sarray[3]);--should work if i dont change the message
-end
+
 if (message == CHECKERS_REQUEST_MESSAGE and checkersMode == MODE_WAITING_FOR_REQUESTS) then
 checkersOpponentName = author;
 isPlayingChess = false;
@@ -546,16 +546,17 @@ end--end function isSpaceOCcupied
 
 function getPieceNameAtLocation(r1,c1)
 return pieces[isSpaceOccupied(r1,c1)].name;
-return nil;
 end
 --[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
 		landedRow,landedColumn, pieces[i].team,pieces[i].name);
 ]]
-function isValidChessMove(thisPiece,r1,c1,r2,c2,team,name,noVoice)
+function isValidChessMove(thisPiece,r1,c1,r2,c2,team,name,noVoice,internal)
 
+--internal stops the stack overflow from recursion
+if (internal == nil or internal == false) then
 if (myKingIsInCheck() and name ~= "king") then setStatusText("You are in check!",8,VOICE_ENEMY_PIECE_KINGED,noVoice) return false end
 --todo: add da movement for da king xd
-
+end
 
 
 --handle the attempted movement of pieces that are just display.
@@ -588,6 +589,7 @@ if (team == TEAM_HOST) then topbot = "BOTTOM" end
 attemptedLandingIndex = isSpaceOccupied(r2,c2);
 	
 setStatusText("can't go there mate",8,VOICE_WRONG_TURN,noVoice)--to be overwritten
+
 if (name == "pawn") then
 if (topbot == "BOTTOM") then
 if (c2-c1==0 and r2-r1==1 and isSpaceOccupied(r2,c2) == -1 
@@ -694,7 +696,7 @@ return false;
 
 end--end function isValidChessMove
 function isChessEnemy(r,c,pieceIndex)
-if (pieceIndex) then return pieces[isSpaceOccupied(r,c)].team == pieces[pieceIndex].team end
+if (pieceIndex) then return isSpaceOccupied(r,c) ~= -1 and pieces[isSpaceOccupied(r,c)].team ~= pieces[pieceIndex].team end
 
 index = isSpaceOccupied(r,c) 
 
@@ -832,9 +834,12 @@ for i = 1, 8*2*2 do
 --[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
 		landedRow,landedColumn, pieces[i].team,pieces[i].name);
 ]]
-if (isValidChessMove(i,pieces[i].row,pieces[i].column,kingrow,kingcol,pieces[i].team,pieces[i].name)) then
+if (isChessEnemy(i)) then
+if (isValidChessMove(i,pieces[i].row,pieces[i].column,kingrow,kingcol,pieces[i].team,pieces[i].name,nil,true)) then
+print("r1=" .. pieces[i].row .. ", c1 = " .. pieces[i].column .. ", kingrow=" .. kingrow .. " kingcol = " .. kingcol);
 return true;
-end
+end--end if
+end--end if enemy
 
 end--end for
 
@@ -986,7 +991,7 @@ if (pieces[i].team == TEAM_HOST) then
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
 else
 pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_black.tga');
-peices[i].tx:SetRotation(180,0.5,0.5);
+--pieces[i].tx:SetRotation(math.pi,0.5,0.5);
 end
 pieces[i].checkerFrame:Show();
 
@@ -1125,22 +1130,22 @@ end--end function createPieces
 --when the pawn gets to the end of the board
 --same function is called whether its on the server or the client.
 function queenPiece(index) 
-pieces[i].name = "queen";
---pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/' .. CHESS_PIECE_NAMES[i] .. '_white.tga');
+pieces[index].name = "queen";
+
 if (index <= 16) then team = TEAM_HOST else team = TEAM_GUEST end
 
 if (team == TEAM_HOST) then
-pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/queen_white.tga');
+pieces[index].tx:SetTexture('Interface/AddOns/Checkers/images/queen_white.tga');
 else
-pieces[i].tx:SetTexture('Interface/AddOns/Checkers/images/queen_black.tga');
+pieces[index].tx:SetTexture('Interface/AddOns/Checkers/images/queen_black.tga');
 end
 
 --now tell the other computer to do it
-if ((team == TEAM_HOST and (isHostingTheCheckersGame == true))
+if (((team == TEAM_HOST and (isHostingTheCheckersGame == true)))
 	or
-	(team == TEAM_GUEST and (isHostingTheCheckersGame == false))
+	(team == TEAM_GUEST and (isHostingTheCheckersGame == false)))
 	then
-reply(CHECKERS_QUEEN_MESSAGE .. " " .. index);	
+reply(">CHECKERS queen " .. index);	
 	end
 
 --[[pieces[i] = {
