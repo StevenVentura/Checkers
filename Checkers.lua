@@ -834,12 +834,10 @@ for i = 1, 8*2*2 do
 --[[isValid, takenIndex = isValidChessMove(i,pieces[i].row,pieces[i].column,
 		landedRow,landedColumn, pieces[i].team,pieces[i].name);
 ]]
-if (isChessEnemy(i)) then
 if (isValidChessMove(i,pieces[i].row,pieces[i].column,kingrow,kingcol,pieces[i].team,pieces[i].name,nil,true)) then
 print("r1=" .. pieces[i].row .. ", c1 = " .. pieces[i].column .. ", kingrow=" .. kingrow .. " kingcol = " .. kingcol);
 return true;
 end--end if
-end--end if enemy
 
 end--end for
 
