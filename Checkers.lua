@@ -48,7 +48,7 @@ local VOICE_THEY_WON = "VOICE_THEY_WON";
 local VOICE_GAME_STARTED = "VOICE_GAME_STARTED";
 local VOICE_OUT_OF_RANGE = "VOICE_OUT_OF_RANGE";
 
-local pieces = {};--holds the data for each checker
+pieces = {};--holds the data for each checker
 checkersVoices = {};--holds the sound files for our team
 hostDeadCount, guestDeadCount = 0,0;
 local TEAM_HOST = 0;--for checker pieces, is alliance
@@ -457,6 +457,7 @@ local moveIndex, r2, c2, removedIndex, turnEnded =
 --edit the checker data and frame
 pieces[moveIndex].row = r2;
 pieces[moveIndex].column = c2;
+enPassantPass(moveIndex);
 pieces[moveIndex].checkerFrame:ClearAllPoints();
 pieces[moveIndex].checkerFrame:SetPoint("BOTTOMLEFT",
 convertColumnToX(pieces[moveIndex].column),convertRowToY(pieces[moveIndex].row));
@@ -510,6 +511,35 @@ end
 
 return true;--displaymessageornotthing?
 end--end local function CheckersIncoming
+
+
+function enPassantPass(index)
+local piece = pieces[index];
+--only look at enemy pieces for this check.
+if ((piece.team == TEAM_HOST and isHostingTheCheckersGame)
+	or
+	(piece.team == TEAM_GUEST and not(isHostingTheCheckersGame)))
+	then return end
+	
+if (abs(piece.row - piece.spawnrow) == 1) then
+enPassantPasserbys[piece.spawncolumn] = false;
+end
+end--end function enPassantPass
+--[[
+enPassantPasserbys keeps track of if the piece has moved to row 1 or not yet (has done a "single" move).
+note only enemy pieces are tracked of.
+]]
+enPassantPasserbys = {[1]=true,[2]=true,[3]=true,[4]=true,[5]=true,
+							[6]=true,[7]=true,[8]=true}
+function CheckersEnPassant(index)
+
+local piece = pieces[index];
+print("minus is " .. piece.row - piece.spawnrow);
+
+return enPassantPasserbys[piece.spawncolumn] and abs(piece.row-piece.spawnrow) == 2
+
+
+end--end function CheckersEnPassant
 function CheckersOutgoing(ChatFrameSelf, event, message, author, ...)
 local sarray = checkersSplitString(message);
 if (sarray[1] == ">CHECKERS" or sarray[1] == ">CHESS") then
@@ -599,13 +629,49 @@ if (topbot == "BOTTOM") then
 if (c2-c1==0 and r2-r1==1 and isSpaceOccupied(r2,c2) == -1 
 		or
 	r1 == 2 and c2-c1==0 and r2-r1==2 and isSpaceOccupied(r1+1,c2) == -1 and isSpaceOccupied(r1+2,c2) == -1
-	) then return true end 
-	if (abs(c2-c1)==1 and r2-r1==1 and isChessEnemy(r2,c2,thisPiece)) then return true, isSpaceOccupied(r2,c2) end
+	) then 
+	
+	return true end 
+	--logic for taking an en-passant piece
+	
+	
+	if (
+	isSpaceOccupied(r1,c2) ~= -1
+	and
+	pieces[isSpaceOccupied(r1,c2)].name == "pawn"
+	and
+	CheckersEnPassant(isSpaceOccupied(r1,c2)) == true
+	and
+	abs(c2-c1) == 1 and r2-r1 == 1 and isChessEnemy(r1,c2,thisPiece)
+	and
+	isSpaceOccupied(r2,c2) == -1) then
+	setStatusText("En Passant!",8,VOICE_FRIENDLY_KING_TAKEN);
+	return true, isSpaceOccupied(r1,c2);
+	end
+	
+	if (abs(c2-c1)==1 and r2-r1==1 and isChessEnemy(r2,c2,thisPiece)) then
+
+	return true, isSpaceOccupied(r2,c2) end
 else--elsetop
 if (c2-c1==0 and r2-r1==-1 and isSpaceOccupied(r2,c2) == -1 
 		or
 	r1 == 7 and c2-c1==0 and r2-r1==-2 and isSpaceOccupied(r1-1,c2) == -1 and isSpaceOccupied(r1-2,c2) == -1
-	) then return true end
+	) then 
+	
+	return true end
+	
+	if (isSpaceOccupied(r1,c2) ~= -1
+	and
+	pieces[isSpaceOccupied(r1,c2)].name == "pawn"
+	and
+	CheckersEnPassant(isSpaceOccupied(r1,c2)) == true
+	and
+	abs(c2-c1) == 1 and r2-r1 == -1 and isChessEnemy(r1,c2,thisPiece)
+	and
+	isSpaceOccupied(r2,c2) == -1) then
+	setStatusText("En Passant!",8,VOICE_FRIENDLY_KING_TAKEN);
+	return true, isSpaceOccupied(r1,c2);
+	end
 	if (abs(c2-c1)==1 and r2-r1==-1 and isChessEnemy(r2,c2,thisPiece)) then return true, isSpaceOccupied(r2,c2) end
 end--end elsetop
 end--end pawn
@@ -913,10 +979,15 @@ numPieces = 24;
 end
 
 if (isPlayingChess) then
+enPassantPasserbys = {[1]=true,[2]=true,[3]=true,[4]=true,[5]=true,
+							[6]=true,[7]=true,[8]=true}
+
 for i = 1, numPieces do
 pieces[i] = {
 row = CHESS_ROWS[i];--row 1 is the bottom row.
 column = CHESS_COLUMNS[i];
+spawnrow = CHESS_ROWS[i];
+spawncolumn = CHESS_COLUMNS[i];
 team = CHESS_TEAMS[i];
 name = CHESS_PIECE_NAMES[i];
 king = false;--nil
